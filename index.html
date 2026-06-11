@@ -1,0 +1,389 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>고은표 과학 허브 · Science Hub</title>
+    <meta
+      name="description"
+      content="고은표 선생님이 만든 과학 인터랙티브 학습 콘텐츠를 한 곳에서 만나요."
+    />
+    <style>
+      /* =========================================================
+         고은표 과학 허브 — 단일 HTML 런처
+         ▶ 콘텐츠 추가/수정은 아래 <script>의 CONTENTS 배열만 고치면 됩니다.
+         ========================================================= */
+      :root {
+        --bg: #eef2f8;
+        --bg2: #e3e9f3;
+        --card: #ffffff;
+        --text: #1a2230;
+        --muted: #5b6675;
+        --line: #d6deea;
+        --accent: #1255a0;
+        --shadow: 0 6px 22px rgba(20, 40, 80, 0.1);
+        --shadow-hover: 0 12px 30px rgba(20, 40, 80, 0.18);
+      }
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        margin: 0;
+      }
+      body {
+        font-family:
+          'Pretendard', system-ui, -apple-system, 'Segoe UI', 'Apple SD Gothic Neo', sans-serif;
+        color: var(--text);
+        background:
+          radial-gradient(1100px 480px at 50% -180px, #d7e3f6 0%, transparent 70%),
+          linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+        background-attachment: fixed;
+        min-height: 100vh;
+        line-height: 1.6;
+      }
+      .wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+        padding: 40px 20px 64px;
+      }
+
+      /* 헤더 */
+      header {
+        text-align: center;
+        margin-bottom: 28px;
+      }
+      .logo {
+        font-size: 40px;
+        line-height: 1;
+      }
+      h1 {
+        margin: 10px 0 6px;
+        font-size: clamp(26px, 5vw, 38px);
+        letter-spacing: -0.5px;
+      }
+      .subtitle {
+        margin: 0;
+        color: var(--muted);
+        font-size: clamp(14px, 2.6vw, 17px);
+      }
+      .teacher {
+        display: inline-block;
+        margin-top: 12px;
+        background: var(--accent);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        padding: 5px 14px;
+        border-radius: 999px;
+      }
+
+      /* 컨트롤(검색 + 필터) */
+      .controls {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: center;
+        margin: 26px 0 22px;
+      }
+      .search {
+        width: min(420px, 100%);
+        position: relative;
+      }
+      .search input {
+        width: 100%;
+        padding: 13px 16px 13px 42px;
+        font-size: 16px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--text);
+        box-shadow: var(--shadow);
+      }
+      .search input:focus {
+        outline: 2px solid var(--accent);
+        outline-offset: 1px;
+      }
+      .search .icon {
+        position: absolute;
+        left: 16px;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: 16px;
+        opacity: 0.5;
+      }
+      .chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+      .chip {
+        border: 1px solid var(--line);
+        background: #fff;
+        color: var(--muted);
+        border-radius: 999px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        min-height: 40px;
+      }
+      .chip.on {
+        background: var(--accent);
+        color: #fff;
+        border-color: var(--accent);
+      }
+
+      /* 카드 그리드 */
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 18px;
+      }
+      .card {
+        display: flex;
+        flex-direction: column;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 18px;
+        padding: 20px;
+        text-decoration: none;
+        color: inherit;
+        box-shadow: var(--shadow);
+        transition:
+          transform 0.16s ease,
+          box-shadow 0.16s ease;
+        position: relative;
+        min-height: 184px;
+      }
+      a.card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-hover);
+      }
+      a.card:focus-visible {
+        outline: 3px solid var(--accent);
+        outline-offset: 2px;
+      }
+      .card.soon {
+        opacity: 0.72;
+        cursor: default;
+      }
+      .card-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .emoji {
+        width: 52px;
+        height: 52px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        font-size: 28px;
+      }
+      .tag {
+        font-size: 12px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+      .card h2 {
+        margin: 0 0 6px;
+        font-size: 19px;
+      }
+      .card p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 14px;
+        flex: 1;
+      }
+      .card-go {
+        margin-top: 14px;
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--accent);
+      }
+      .badge-soon {
+        font-size: 12px;
+        font-weight: 700;
+        color: #8a6d12;
+        background: #fdeecb;
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+
+      .empty {
+        grid-column: 1 / -1;
+        text-align: center;
+        color: var(--muted);
+        padding: 40px 0;
+        font-size: 15px;
+      }
+
+      footer {
+        margin-top: 48px;
+        padding-top: 18px;
+        border-top: 1px solid var(--line);
+        text-align: center;
+        color: var(--muted);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <header>
+        <div class="logo">🔬</div>
+        <h1 id="site-title">고은표 과학 허브</h1>
+        <p class="subtitle" id="site-subtitle">
+          한 곳에서 만나는 과학 인터랙티브 학습 — 눌러서 바로 체험해 보세요!
+        </p>
+        <span class="teacher">과학 · 고은표</span>
+      </header>
+
+      <div class="controls">
+        <div class="search">
+          <span class="icon">🔍</span>
+          <input
+            id="search"
+            type="search"
+            placeholder="콘텐츠 검색 (예: 세포분열, 퀴즈)"
+            aria-label="콘텐츠 검색"
+          />
+        </div>
+        <div class="chips" id="chips" role="group" aria-label="과목 필터"></div>
+      </div>
+
+      <main class="grid" id="grid"></main>
+
+      <footer>Claude AI로 이 앱을 제작함 by 고은표</footer>
+    </div>
+
+    <script>
+      /* =========================================================
+         ▼▼▼ 콘텐츠 목록 — 새 학습 콘텐츠를 만들면 여기에 한 칸만 추가하세요 ▼▼▼
+         형식:
+         {
+           title:   '카드 제목',
+           desc:    '한두 문장 설명',
+           url:     'https://...'        // 배포된 콘텐츠 주소
+           subject: '생명과학',           // 과목(자동으로 필터 칩이 생깁니다)
+           emoji:   '🧬',                // 카드 아이콘
+           status:  'live'              // 'live'(공개) 또는 'soon'(준비 중, url 없이 가능)
+         }
+         ========================================================= */
+      const CONTENTS = [
+        {
+          title: 'ChromoLab',
+          desc: '염색체를 직접 움직이며 체세포분열·감수분열, 그리고 수정으로 커지는 자손의 유전적 다양성까지 배우는 인터랙티브 학습 도구.',
+          url: 'https://geungschool-hub.github.io/chromolab/',
+          subject: '생명과학',
+          emoji: '🧬',
+          status: 'live',
+        },
+        {
+          title: '생명과학 복습 퀴즈',
+          desc: '단원별 문제를 풀고 내 학습 진도와 완성도를 확인하는 복습 퀴즈.',
+          url: 'https://lifescience-quiz.web.app/',
+          subject: '생명과학',
+          emoji: '📝',
+          status: 'live',
+        },
+        {
+          title: '새로운 콘텐츠 준비 중',
+          desc: '재미있는 과학 인터랙티브 자료를 계속 만들고 있어요. 가끔 들러서 새로 생긴 카드를 확인해 보세요!',
+          subject: '예고',
+          emoji: '✨',
+          status: 'soon',
+        },
+      ];
+      /* ▲▲▲ 여기까지만 고치면 됩니다 ▲▲▲ */
+
+      // 과목별 색상 (없는 과목은 기본색)
+      const SUBJECT_COLORS = {
+        생명과학: { fg: '#2a7a38', bg: '#e6f4e9' },
+        통합과학: { fg: '#1255a0', bg: '#e2ecf8' },
+        화학: { fg: '#7d3c98', bg: '#f0e6f5' },
+        물리학: { fg: '#c0530f', bg: '#fcebdc' },
+        지구과학: { fg: '#0f7d80', bg: '#e0f2f2' },
+        예고: { fg: '#8a6d12', bg: '#fdeecb' },
+      };
+      const DEFAULT_COLOR = { fg: '#445', bg: '#eef1f6' };
+      const colorOf = (s) => SUBJECT_COLORS[s] || DEFAULT_COLOR;
+
+      const grid = document.getElementById('grid');
+      const chipsBox = document.getElementById('chips');
+      const searchInput = document.getElementById('search');
+      let activeSubject = '전체';
+      let query = '';
+
+      // 과목 필터 칩 구성 (콘텐츠에서 자동 수집, '전체' 먼저)
+      const subjects = ['전체', ...Array.from(new Set(CONTENTS.map((c) => c.subject)))];
+      function renderChips() {
+        chipsBox.innerHTML = '';
+        subjects.forEach((s) => {
+          const b = document.createElement('button');
+          b.className = 'chip' + (s === activeSubject ? ' on' : '');
+          b.textContent = s;
+          b.onclick = () => {
+            activeSubject = s;
+            renderChips();
+            renderCards();
+          };
+          chipsBox.appendChild(b);
+        });
+      }
+
+      function matches(c) {
+        if (activeSubject !== '전체' && c.subject !== activeSubject) return false;
+        if (!query) return true;
+        const hay = (c.title + ' ' + c.desc + ' ' + c.subject).toLowerCase();
+        return hay.includes(query);
+      }
+
+      function renderCards() {
+        const list = CONTENTS.filter(matches);
+        grid.innerHTML = '';
+        if (list.length === 0) {
+          grid.innerHTML = '<div class="empty">조건에 맞는 콘텐츠가 없어요. 검색어나 과목을 바꿔 보세요.</div>';
+          return;
+        }
+        list.forEach((c) => {
+          const col = colorOf(c.subject);
+          const isSoon = c.status === 'soon';
+          const el = document.createElement(isSoon ? 'div' : 'a');
+          el.className = 'card' + (isSoon ? ' soon' : '');
+          if (!isSoon) {
+            el.href = c.url;
+            el.target = '_blank';
+            el.rel = 'noopener';
+          }
+          el.innerHTML = `
+            <div class="card-top">
+              <div class="emoji" style="background:${col.bg}">${c.emoji}</div>
+              ${
+                isSoon
+                  ? '<span class="badge-soon">준비 중</span>'
+                  : `<span class="tag" style="color:${col.fg};background:${col.bg}">${c.subject}</span>`
+              }
+            </div>
+            <h2>${c.title}</h2>
+            <p>${c.desc}</p>
+            ${isSoon ? '' : '<div class="card-go">열어 보기 →</div>'}
+          `;
+          grid.appendChild(el);
+        });
+      }
+
+      searchInput.addEventListener('input', (e) => {
+        query = e.target.value.trim().toLowerCase();
+        renderCards();
+      });
+
+      renderChips();
+      renderCards();
+    </script>
+  </body>
+</html>
