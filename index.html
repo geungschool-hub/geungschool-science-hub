@@ -151,19 +151,58 @@
         border-color: var(--accent);
       }
 
-      /* 카드 그리드 */
-      .grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-        gap: 18px;
-      }
-      .card {
+      /* ── 과목 섹션 ──
+         과목마다 색 띠를 두른 제목을 두고 그 아래에만 그 과목 카드를 모은다.
+         생명과학 3개 · 생물의 유전 10개처럼 수가 크게 벌어져도 경계가 흐려지지 않는다. */
+      .stack {
         display: flex;
         flex-direction: column;
+        gap: 34px;
+      }
+      .sec-head {
+        display: flex;
+        align-items: baseline;
+        gap: 10px;
+        padding-bottom: 9px;
+        margin-bottom: 15px;
+        border-bottom: 3px solid var(--sc);
+      }
+      .sec-name {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--sc);
+        letter-spacing: -0.3px;
+      }
+      .sec-count {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--sc);
+        background: var(--sb);
+        border-radius: 999px;
+        padding: 3px 11px;
+      }
+      .sec-grid {
+        display: grid;
+        /* ★320px — 300px 으로 두었더니 창이 1000px 일 때 3열이 되면서 칸이 좀아져
+           설명 일곱이 세 줄에서 잘렸다(실측). 320 이면 그 대에서 2열로 내려앉는다. */
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 14px;
+      }
+
+      /* ── 카드 — 가로형 ──
+         이모지를 왼쪽으로 보내고 설명을 두 줄에서 자른다.
+         과목 태그와 「열어 보기 →」 줄은 섹션 제목이 대신하므로 없앴다.
+         ★한 줄의 높이는 그 줄에서 설명이 가장 긴 카드가 정한다 — 두 줄로 자르지 않으면
+           카드 하나 때문에 줄 전체가 400px 까지 늘어난다(2026-09-14 실측). */
+      .card {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 13px;
+        align-items: start;
         background: var(--card);
         border: 1px solid var(--line);
-        border-radius: 18px;
-        padding: 20px;
+        border-radius: 14px;
+        padding: 14px 16px;
         text-decoration: none;
         color: inherit;
         box-shadow: var(--shadow);
@@ -171,7 +210,6 @@
           transform 0.16s ease,
           box-shadow 0.16s ease;
         position: relative;
-        min-height: 184px;
       }
       a.card:hover {
         transform: translateY(-4px);
@@ -185,40 +223,39 @@
         opacity: 0.72;
         cursor: default;
       }
-      .card-top {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 12px;
-      }
-      .emoji {
-        width: 52px;
-        height: 52px;
-        border-radius: 14px;
+      .ic {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
         display: grid;
         place-items: center;
-        font-size: 28px;
+        font-size: 24px;
       }
-      .tag {
-        font-size: 12px;
-        font-weight: 700;
-        padding: 4px 10px;
-        border-radius: 999px;
+      .bd {
+        min-width: 0;
       }
       .card h2 {
-        margin: 0 0 6px;
-        font-size: 19px;
+        margin: 0 0 3px;
+        font-size: 16.5px;
+        line-height: 1.35;
       }
       .card p {
         margin: 0;
         color: var(--muted);
-        font-size: 14px;
-        flex: 1;
+        font-size: 13.5px;
+        line-height: 1.55;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
       }
-      .card-go {
-        margin-top: 14px;
-        font-size: 14px;
-        font-weight: 700;
+      .go {
+        margin-left: 6px;
+        font-size: 15px;
+        font-weight: 400;
+        color: #a9b0bd;
+      }
+      a.card:hover .go {
         color: var(--accent);
       }
       .badge-soon {
@@ -231,7 +268,6 @@
       }
 
       .empty {
-        grid-column: 1 / -1;
         text-align: center;
         color: var(--muted);
         padding: 40px 0;
@@ -273,7 +309,7 @@
         <div class="chips" id="chips" role="group" aria-label="과목 필터"></div>
       </div>
 
-      <main class="grid" id="grid"></main>
+      <main class="stack" id="grid"></main>
 
       <footer>Claude AI로 이 앱을 제작함 by 고은표</footer>
     </div>
@@ -294,7 +330,7 @@
       const CONTENTS = [
         {
           title: 'ChromoLab',
-          desc: '염색체를 직접 움직이며 체세포분열·감수분열, 그리고 수정으로 커지는 자손의 유전적 다양성까지 배우는 인터랙티브 학습 도구.',
+          desc: '염색체를 직접 움직여 체세포분열과 감수분열을 만들어 보고, 수정으로 생기는 유전적 다양성까지 확인한다.',
           url: 'https://geungschool-hub.github.io/chromolab/',
           subject: '생명과학',
           emoji: '🧬',
@@ -310,7 +346,7 @@
         },
         {
           title: '과학 탐구 보고서 쓰기',
-          desc: '주장·논거·고찰을 중심으로 과학 탐구 보고서 쓰는 법을 7단계로 익히는 가이드. 예시·꿀팁·자기점검·계획서 PDF 내보내기까지.',
+          desc: '주장·논거·고찰을 중심으로 탐구 보고서 쓰는 법을 7단계로 익힌다. 계획서 PDF 내보내기까지.',
           url: 'https://geungschool-hub.github.io/report-guide/',
           subject: '생명과학',
           emoji: '✍️',
@@ -318,7 +354,7 @@
         },
         {
           title: '유전형질 전달 모의실험',
-          desc: '부모의 대립유전자 막대를 뽑아 자녀의 유전자형과 표현형을 완성하는 모의실험. 우성/열성 전환과 자녀 100명 시뮬레이션으로 상염색체·성염색체 유전을 비교해 보자.',
+          desc: '부모의 대립유전자를 뽑아 자녀의 유전자형과 표현형을 완성하고, 상염색체 유전과 성염색체 유전을 견준다.',
           url: 'https://geungschool-hub.github.io/gene-sim/',
           subject: '생물의 유전',
           emoji: '🎲',
@@ -326,7 +362,7 @@
         },
         {
           title: '가계도 분석하기',
-          desc: 'PTC 미맹·적록색맹 가계도를 분석하는 웹 활동. 우성/열성과 상·성염색체를 판단하고 근거 가족을 직접 찾아 탭, 14명의 유전자형을 채워 채점하고 색맹 대립유전자의 전달 경로를 추적해 보자.',
+          desc: 'PTC 미맹·적록색맹 가계도에서 우성/열성과 상·성염색체를 판단하고, 근거가 되는 가족을 직접 찾아 탭한다.',
           url: 'https://geungschool-hub.github.io/pedigree-sim/',
           subject: '생물의 유전',
           emoji: '🌳',
@@ -334,7 +370,7 @@
         },
         {
           title: '염색체 비분리 모의실험',
-          desc: '21번 염색체를 직접 끌어 생식세포를 만들어 보는 모의실험. 정상 분열, 감수 1분열 비분리, 감수 2분열 비분리를 차례로 만들어 생식세포 4개의 염색체 수가 어떻게 달라지는지 확인한다. 교과서 31쪽 그림 Ⅰ-18의 웹 버전이다.',
+          desc: '21번 염색체를 직접 끌어 정상 분열·감수 1분열 비분리·감수 2분열 비분리를 만들고, 생식세포의 염색체 수를 견준다.',
           url: 'https://geungschool-hub.github.io/nondisj-sim/',
           subject: '생물의 유전',
           emoji: '🧬',
@@ -342,7 +378,7 @@
         },
         {
           title: '유전물질을 찾는 세 실험',
-          desc: '그리피스·에이버리·허시와 체이스의 실험을 차례로 실행하는 모의실험. 주사기에 넣을 것, 처리할 효소, 표지할 물질을 직접 골라 결과를 관찰한다. 세 실험이 이어지는 논리를 3×4 사슬판에서 잇고, 각 무대는 단계별로 되돌려 다시 볼 수 있다.',
+          desc: '그리피스·에이버리·허시와 체이스의 실험을 차례로 실행해, 유전물질이 단백질이 아니라 DNA 임을 스스로 좁혀 간다.',
           url: 'https://geungschool-hub.github.io/dnaproof-sim/',
           subject: '생물의 유전',
           emoji: '🧫',
@@ -350,7 +386,7 @@
         },
         {
           title: '메셀슨과 스탈 — DNA 복제 방식 가려내기',
-          desc: '보존적·반보존적·분산적 세 복제모델을 직접 굴려 보고, 무거운 질소(15N)와 가벼운 질소(14N)의 무게 차이가 만든 띠로 어느 모델이 지워지는지 가려내는 모의실험. 1세대 결과만으로는 분산적 복제를 지울 수 없다는 것을 스스로 확인한 뒤 2세대를 공개한다. 교과서 46쪽 그림 Ⅰ-31의 웹 버전이다.',
+          desc: '보존적·반보존적·분산적 세 복제 모델을 직접 굴려 보고, 원심분리 띠로 어느 모델이 지워지는지 가려낸다.',
           url: 'https://geungschool-hub.github.io/meselson-sim/',
           subject: '생물의 유전',
           emoji: '⚖️',
@@ -358,7 +394,7 @@
         },
         {
           title: 'DNA 복제 모의실험',
-          desc: '풀린 DNA 두 가닥에 상보 뉴클레오타이드를 직접 붙여 복제해 보는 모의실험. 3′ 말단 규칙 때문에 한쪽은 연속으로, 다른 쪽은 조각으로 합성된다는 것을 조작으로 확인하고 메셀슨·스탈 실험까지 이어 본다.',
+          desc: '풀린 두 가닥에 상보 뉴클레오타이드를 직접 붙여 복제하고, 한쪽이 왜 조각으로 합성되는지 확인한다.',
           url: 'https://geungschool-hub.github.io/dna-sim/',
           subject: '생물의 유전',
           emoji: '⛓️',
@@ -366,7 +402,7 @@
         },
         {
           title: '중심원리와 유전부호 해독',
-          desc: 'DNA에서 RNA를 거쳐 단백질로 유전정보가 흐르는 길을 따라가고, 코돈표를 직접 읽어 mRNA에 저장된 아미노산서열을 해독하는 활동. 읽기틀을 바꿔 가며 어디서 끊어 읽어야 하는지 스스로 가려내고, 염기 하나를 바꾸면 결과가 셋으로 갈리는 것까지 확인한다.',
+          desc: 'DNA 에서 단백질까지 유전정보가 흐르는 길을 따라가고, 코돈표를 직접 읽어 아미노산서열을 해독한다.',
           url: 'https://geungschool-hub.github.io/codon-sim/',
           subject: '생물의 유전',
           emoji: '🔤',
@@ -374,7 +410,7 @@
         },
         {
           title: '전사 모의실험',
-          desc: 'DNA 두 가닥 가운데 어느 쪽이 주형인지 프로모터를 근거로 직접 고르고, RNA 중합효소가 결합해 DNA를 풀고 나아가며 RNA를 잇고 지나간 자리가 다시 감기는 개시·신장·종결 아홉 국면을 따라가는 모의실험. 상보적인 염기를 직접 이어 본 뒤 DNA 복제와 무엇이 다른지 세 줄로 견주고, 전사되는 RNA가 mRNA 하나가 아니라는 것과 원핵·진핵에서 번역이 시작되는 자리가 다르다는 것까지 확인한다. 교과서 63쪽 그림 Ⅱ-3의 웹 버전이다.',
+          desc: '프로모터를 근거로 주형 가닥을 고르고, 개시·신장·종결 아홉 국면으로 RNA 가 만들어지는 과정을 따라간다.',
           url: 'https://geungschool-hub.github.io/transcription-sim/',
           subject: '생물의 유전',
           emoji: '✍️',
@@ -382,7 +418,7 @@
         },
         {
           title: '단백질 합성 모의실험',
-          desc: '주형 DNA로 mRNA를 전사하고, 라이보솜에서 코돈표로 해독하며 tRNA를 골라 폴리펩타이드를 만들어 보는 모의실험. 염기 하나를 바꿔 돌연변이 다섯 가지 결과도 확인한다.',
+          desc: '주형 DNA 로 mRNA 를 전사하고, 라이보솜에서 tRNA 를 골라 폴리펩타이드를 만든다.',
           url: 'https://geungschool-hub.github.io/protein-sim/',
           subject: '생물의 유전',
           emoji: '🧵',
@@ -390,7 +426,7 @@
         },
         {
           title: '생물의 유전 복습 퀴즈',
-          desc: '생물의 유전 단원별 문제를 풀고 내 학습 진도와 완성도를 확인하는 복습 퀴즈. 생명과학 퀴즈와 같은 학번·PIN으로 로그인.',
+          desc: '생물의 유전 단원별 문제를 풀고 내 학습 진도와 완성도를 확인한다. 생명과학 퀴즈와 같은 학번·PIN 으로 들어간다.',
           url: 'https://lifescience-quiz.web.app/gen',
           subject: '생물의 유전',
           emoji: '📝',
@@ -416,6 +452,8 @@
         지구과학: { fg: '#0f7d80', bg: '#e0f2f2' },
         예고: { fg: '#8a6d12', bg: '#fdeecb' },
       };
+      // 섹션이 놓이는 차례 — 여기 없는 과목은 CONTENTS 에 나온 차례대로 뒤에 붙는다
+      const SUBJECT_ORDER = ['생명과학', '생물의 유전'];
       const DEFAULT_COLOR = { fg: '#445', bg: '#eef1f6' };
       const colorOf = (s) => SUBJECT_COLORS[s] || DEFAULT_COLOR;
 
@@ -449,6 +487,34 @@
         return hay.includes(query);
       }
 
+      // 과목이 놓이는 차례 — SUBJECT_ORDER 에 적힌 것이 먼저, 나머지는 CONTENTS 차례대로
+      function subjectRank(s) {
+        const i = SUBJECT_ORDER.indexOf(s);
+        return i >= 0 ? i : SUBJECT_ORDER.length + subjects.indexOf(s);
+      }
+
+      function cardEl(c) {
+        const col = colorOf(c.subject);
+        const isSoon = c.status === 'soon';
+        const el = document.createElement(isSoon ? 'div' : 'a');
+        el.className = 'card' + (isSoon ? ' soon' : '');
+        if (!isSoon) {
+          el.href = c.url;
+          el.target = '_blank';
+          el.rel = 'noopener';
+        }
+        el.innerHTML = `
+          <div class="ic" style="background:${col.bg}">${c.emoji}</div>
+          <div class="bd">
+            <h2>${c.title}${
+              isSoon ? '<span class="badge-soon">준비 중</span>' : '<span class="go">→</span>'
+            }</h2>
+            <p>${c.desc}</p>
+          </div>
+        `;
+        return el;
+      }
+
       function renderCards() {
         const list = CONTENTS.filter(matches);
         grid.innerHTML = '';
@@ -456,30 +522,35 @@
           grid.innerHTML = '<div class="empty">조건에 맞는 콘텐츠가 없어요. 검색어나 과목을 바꿔 보세요.</div>';
           return;
         }
+        // 과목별로 묶는다 — 카드 수가 크게 벌어져도 경계가 흐려지지 않는다
+        const groups = [];
         list.forEach((c) => {
-          const col = colorOf(c.subject);
-          const isSoon = c.status === 'soon';
-          const el = document.createElement(isSoon ? 'div' : 'a');
-          el.className = 'card' + (isSoon ? ' soon' : '');
-          if (!isSoon) {
-            el.href = c.url;
-            el.target = '_blank';
-            el.rel = 'noopener';
+          let g = groups.find((x) => x.subject === c.subject);
+          if (!g) {
+            g = { subject: c.subject, items: [] };
+            groups.push(g);
           }
-          el.innerHTML = `
-            <div class="card-top">
-              <div class="emoji" style="background:${col.bg}">${c.emoji}</div>
-              ${
-                isSoon
-                  ? '<span class="badge-soon">준비 중</span>'
-                  : `<span class="tag" style="color:${col.fg};background:${col.bg}">${c.subject}</span>`
-              }
-            </div>
-            <h2>${c.title}</h2>
-            <p>${c.desc}</p>
-            ${isSoon ? '' : '<div class="card-go">열어 보기 →</div>'}
-          `;
-          grid.appendChild(el);
+          g.items.push(c);
+        });
+        groups.sort((a, b) => subjectRank(a.subject) - subjectRank(b.subject));
+
+        groups.forEach((g) => {
+          const col = colorOf(g.subject);
+          const sec = document.createElement('section');
+          sec.className = 'sec';
+          sec.style.setProperty('--sc', col.fg);
+          sec.style.setProperty('--sb', col.bg);
+          const head = document.createElement('div');
+          head.className = 'sec-head';
+          head.innerHTML =
+            `<span class="sec-name">${g.subject}</span>` +
+            `<span class="sec-count">${g.items.length}개</span>`;
+          const box = document.createElement('div');
+          box.className = 'sec-grid';
+          g.items.forEach((c) => box.appendChild(cardEl(c)));
+          sec.appendChild(head);
+          sec.appendChild(box);
+          grid.appendChild(sec);
         });
       }
 
