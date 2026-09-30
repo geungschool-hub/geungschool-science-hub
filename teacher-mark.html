@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>기기 표시</title>
+<style>
+:root{ --blue:#1255A0; --ink:#1A1A1A; --ink2:#555; --bg:#F4F6F8; --line:#DDD; }
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,'Noto Sans KR',sans-serif;font-size:16px}
+main{max-width:460px;margin:60px auto;padding:0 16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:10px;padding:22px}
+h1{font-size:19px;margin:0 0 14px;color:var(--blue)}
+#state{font-size:17px;font-weight:700;margin:0 0 6px}
+.sub{color:var(--ink2);font-size:14px;margin:0 0 18px}
+button{font:inherit;min-height:44px;padding:0 18px;border-radius:8px;border:1px solid var(--blue);background:var(--blue);color:#fff;cursor:pointer}
+button.off{background:#fff;color:var(--blue)}
+</style>
+</head>
+<body>
+<main><div class="card">
+  <h1>교사 기기 표시</h1>
+  <p id="state"></p>
+  <p class="sub" id="dev"></p>
+  <button id="btn"></button>
+</div></main>
+<script>
+(function(){
+  var K = 'hubstats_teacher';
+  function get(){ try { return localStorage.getItem(K) === '1'; } catch (e) { return null; } }
+  function paint(){
+    var on = get(), btn = document.getElementById('btn');
+    if (on === null){
+      document.getElementById('state').textContent = '이 브라우저는 저장소를 쓸 수 없습니다(시크릿 창일 수 있습니다).';
+      btn.style.display = 'none'; return;
+    }
+    document.getElementById('state').textContent = on ? '✅ 이 브라우저는 교사 기기로 표시되어 있습니다.' : '이 브라우저는 표시되어 있지 않습니다.';
+    document.getElementById('dev').textContent = on ? '이 브라우저에서 연 활동은 접속 기록에 「교사 기기」로 따로 남습니다.' : '표시하면 이 브라우저에서 연 활동이 접속 기록에 「교사 기기」로 따로 남습니다.';
+    btn.textContent = on ? '표시 해제' : '이 브라우저를 교사 기기로 표시';
+    btn.className = on ? 'off' : '';
+  }
+  document.getElementById('btn').onclick = function(){
+    try { if (get()) localStorage.removeItem(K); else localStorage.setItem(K, '1'); } catch (e) {}
+    paint();
+  };
+  paint();
+})();
+</script>
+</body>
+</html>
