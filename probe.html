@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>로그인 연결 시험</title>
+<style>
+  body{margin:0;padding:16px;background:#F4F6F9;color:#1A1A1A;font:16px/1.6 "Malgun Gothic","Apple SD Gothic Neo",sans-serif;}
+  .wrap{max-width:720px;margin:0 auto;}
+  h1{font-size:22px;margin:0 0 6px;color:#1255A0;}
+  p.sub{color:#555;margin:0 0 14px;font-size:15px;}
+  button{font:inherit;font-size:17px;font-weight:700;min-height:48px;padding:10px 22px;border-radius:10px;border:2px solid #1255A0;background:#1255A0;color:#fff;cursor:pointer;}
+  button:disabled{opacity:.5;}
+  table{width:100%;border-collapse:collapse;margin-top:14px;background:#fff;border-radius:10px;overflow:hidden;}
+  td{padding:10px 12px;border-bottom:1px solid #E3E6EB;font-size:15px;vertical-align:top;}
+  td.s{width:44px;text-align:center;font-size:20px;}
+  td.ms{width:80px;text-align:right;color:#555;white-space:nowrap;}
+  .msg{color:#555;font-size:13px;word-break:break-all;}
+  .sum{margin-top:14px;padding:14px;border-radius:10px;font-weight:700;font-size:17px;display:none;}
+  .sum.ok{display:block;background:#E9F5EB;border:2px solid #2A7A38;color:#2A7A38;}
+  .sum.bad{display:block;background:#FDECEA;border:2px solid #C0392B;color:#C0392B;}
+  .env{margin-top:12px;color:#777;font-size:13px;word-break:break-all;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🔌 로그인 연결 시험</h1>
+  <p class="sub">이 기기·이 망에서 허브 학생 로그인이 되는지 확인하는 교사용 페이지입니다.
+    가짜 학번(99900) 계정을 만들었다가 마지막에 지웁니다. 학생 정보는 다루지 않습니다.</p>
+  <button type="button" id="go" onclick="run()">▶ 시험 시작</button>
+  <table id="tbl"></table>
+  <div class="sum" id="sum"></div>
+  <div class="env" id="env"></div>
+</div>
+<script>
+'use strict';
+var KEY = 'AIzaSyDNsHgzaruofl82oqrEb7GGkJhv8M04_YY';
+var DB  = 'https://geung-hub-stats-default-rtdb.asia-southeast1.firebasedatabase.app';
+var IDT = 'https://identitytoolkit.googleapis.com/v1/accounts:';
+var STS = 'https://securetoken.googleapis.com/v1/token?key=' + KEY;
+var EMAIL = 'hyehwa26-99900-r0@stu.hubstats.local', PW = '0000#gh26';
+var STEPS = [
+  ['db',      '① 데이터베이스 연결 (로그인 없이 읽기)'],
+  ['signup',  '② 계정 만들기 (이메일/비밀번호)'],
+  ['signin',  '③ 로그인'],
+  ['refresh', '④ 로그인 유지 (토큰 갱신)'],
+  ['write',   '⑤ 로그인한 채로 쓰기'],
+  ['read',    '⑥ 로그인한 채로 읽기'],
+  ['clean',   '⑦ 시험 기록 지우기'],
+  ['del',     '⑧ 시험 계정 지우기']
+];
+function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function row(id, st, ms, msg){
+  var r = document.getElementById('r_' + id);
+  r.innerHTML = '<td class="s">' + st + '</td><td>' + r.dataset.label + (msg ? '<div class="msg">' + esc(msg) + '</div>' : '') +
+                '</td><td class="ms">' + (ms != null ? ms + 'ms' : '') + '</td>';
+}
+function timed(p){
+  return Promise.race([p, new Promise(function(_, rej){ setTimeout(function(){ rej(new Error('12초 동안 응답 없음')); }, 12000); })]);
+}
+function j(url, body, method){
+  return timed(fetch(url, {
+    method: method || (body ? 'POST' : 'GET'),
+    headers: body ? { 'Content-Type': 'application/json' } : undefined,
+    body: body ? JSON.stringify(body) : undefined
+  })).then(function(r){
+    return r.text().then(function(t){
+      var d = null; try { d = JSON.parse(t); } catch (e) {}
+      if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + ((d && d.error && (d.error.message || d.error)) || t.slice(0, 120)));
+      return d;
+    });
+  });
+}
+async function step(id, fn){
+  var t0 = performance.now();
+  row(id, '⏳', null, '');
+  try {
+    var v = await fn();
+    row(id, '✅', Math.round(performance.now() - t0), typeof v === 'string' ? v : '');
+    return true;
+  } catch (e) {
+    row(id, '❌', Math.round(performance.now() - t0), e && e.message ? e.message : String(e));
+    return false;
+  }
+}
+async function run(){
+  var btn = document.getElementById('go'); btn.disabled = true;
+  var tbl = document.getElementById('tbl'), sum = document.getElementById('sum');
+  tbl.innerHTML = STEPS.map(function(s){ return '<tr id="r_' + s[0] + '" data-label="' + s[1] + '"><td class="s">·</td><td>' + s[1] + '</td><td class="ms"></td></tr>'; }).join('');
+  sum.className = 'sum'; sum.textContent = '';
+  var tok = null, ref = null, uid = null, ok = {};
+  ok.db = await step('db', function(){ return j(DB + '/config/schoolNets.json').then(function(){ return '연결됨'; }); });
+  ok.signup = await step('signup', function(){
+    return j(IDT + 'signUp?key=' + KEY, { email: EMAIL, password: PW, returnSecureToken: true })
+      .then(function(d){ tok = d.idToken; ref = d.refreshToken; uid = d.localId; return '새 계정'; })
+      .catch(function(e){ if (/EMAIL_EXISTS/.test(e.message)) return '이미 있음(지난 시험의 남은 계정) — 로그인으로 넘어간다'; throw e; });
+  });
+  ok.signin = await step('signin', function(){
+    return j(IDT + 'signInWithPassword?key=' + KEY, { email: EMAIL, password: PW, returnSecureToken: true })
+      .then(function(d){ tok = d.idToken; ref = d.refreshToken; uid = d.localId; return ''; });
+  });
+  ok.refresh = ref ? await step('refresh', function(){
+    return timed(fetch(STS, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'grant_type=refresh_token&refresh_token=' + encodeURIComponent(ref) }))
+      .then(function(r){ return r.json().then(function(d){ if (!r.ok) throw new Error('HTTP ' + r.status + ' ' + JSON.stringify(d.error || d).slice(0, 120)); tok = d.id_token; return ''; }); });
+  }) : (row('refresh', '⏭', null, '로그인이 안 되어 건너뜀'), false);
+  var base = uid ? DB + '/probe/' + uid + '.json?auth=' + encodeURIComponent(tok) : null;
+  ok.write = base ? await step('write', function(){ return j(base, { '.sv': 'timestamp' }, 'PUT').then(function(){ return ''; }); }) : (row('write', '⏭', null, '건너뜀'), false);
+  ok.read  = base ? await step('read',  function(){ return j(base).then(function(v){ if (typeof v !== 'number') throw new Error('읽은 값이 이상함: ' + v); return ''; }); }) : (row('read', '⏭', null, '건너뜀'), false);
+  ok.clean = base ? await step('clean', function(){ return j(base, null, 'DELETE').then(function(){ return ''; }); }) : (row('clean', '⏭', null, '건너뜀'), false);
+  ok.del   = tok ? await step('del', function(){ return j(IDT + 'delete?key=' + KEY, { idToken: tok }).then(function(){ return ''; }); }) : (row('del', '⏭', null, '건너뜀'), false);
+  var core = ok.db && ok.signin && ok.refresh && ok.write && ok.read;
+  sum.className = 'sum ' + (core ? 'ok' : 'bad');
+  sum.textContent = core ? '✅ 이 기기·이 망에서 학생 로그인과 기록이 됩니다.'
+                         : '❌ 막힌 단계가 있습니다. 이 화면을 사진으로 찍어 주시면 대안을 고르겠습니다.';
+  btn.disabled = false; btn.textContent = '↻ 다시 시험';
+}
+document.getElementById('env').textContent = '기기: ' + navigator.userAgent;
+</script>
+</body>
+</html>
