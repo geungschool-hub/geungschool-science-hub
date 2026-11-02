@@ -449,6 +449,15 @@
           status: 'live',
         },
         {
+          title: '교사 화면',
+          desc: '학생 접속·활동 기록과 제출물을 본다. 교사 계정 비밀번호로만 들어간다.',
+          url: 'https://geungschool-hub.github.io/geungschool-science-hub/teacher.html',
+          subject: '교사용',
+          emoji: '🔐',
+          status: 'live',
+          teacherOnly: true,   // 교사 기기(teacher-mark.html · 교사 화면 로그인)에서만 보인다 — 막는 것은 DB 규칙
+        },
+        {
           title: '생물의 유전 복습 퀴즈',
           desc: '생물의 유전 단원별 문제를 풀고 내 학습 진도와 완성도를 확인한다. 생명과학 퀴즈와 같은 학번·PIN 으로 들어간다.',
           url: 'https://lifescience-quiz.web.app/gen',
@@ -475,6 +484,7 @@
         물리학: { fg: '#c0530f', bg: '#fcebdc' },
         지구과학: { fg: '#0f7d80', bg: '#e0f2f2' },
         예고: { fg: '#8a6d12', bg: '#fdeecb' },
+        교사용: { fg: '#6b7280', bg: '#eef0f3' },
       };
       // 섹션이 놓이는 차례 — 여기 없는 과목은 CONTENTS 에 나온 차례대로 뒤에 붙는다
       const SUBJECT_ORDER = ['생명과학', '생물의 유전'];
@@ -488,7 +498,12 @@
       let query = '';
 
       // 과목 필터 칩 구성 (콘텐츠에서 자동 수집, '전체' 먼저)
-      const subjects = ['전체', ...Array.from(new Set(CONTENTS.map((c) => c.subject)))];
+      /* 교사용 카드는 교사 기기로 표시된 브라우저에서만 보인다(2026-11-02). 숨기는 것일 뿐 잠금이 아니다 —
+         교사 화면은 교사 계정으로 로그인해야 열리고, 기록은 DB 규칙이 교사에게만 내준다. */
+      let IS_TEACHER = false;
+      try { IS_TEACHER = localStorage.getItem('hubstats_teacher') === '1'; } catch (e) {}
+      const SHOWN = CONTENTS.filter((c) => !c.teacherOnly || IS_TEACHER);
+      const subjects = ['전체', ...Array.from(new Set(SHOWN.map((c) => c.subject)))];
       function renderChips() {
         chipsBox.innerHTML = '';
         subjects.forEach((s) => {
@@ -540,7 +555,7 @@
       }
 
       function renderCards() {
-        const list = CONTENTS.filter(matches);
+        const list = SHOWN.filter(matches);
         grid.innerHTML = '';
         if (list.length === 0) {
           grid.innerHTML = '<div class="empty">조건에 맞는 콘텐츠가 없어요. 검색어나 과목을 바꿔 보세요.</div>';
