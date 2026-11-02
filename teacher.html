@@ -319,9 +319,8 @@ td.empty{color:#CCC;text-align:center}
         <ul class="nets" id="nets"></ul>
       </div>
       <div class="card">
-        <h2>교사 기기 표시</h2>
-        <p class="sub">선생님이 쓰는 기기·브라우저마다 아래 주소를 한 번 연다. 그 브라우저는 접속 기록에 「교사 기기」로 따로 남고, 학생 로그인 화면도 뜨지 않는다. (방문 기록 삭제·시크릿 창에서는 다시 열어야 한다.)</p>
-        <p><a href="https://geungschool-hub.github.io/geungschool-science-hub/teacher-mark.html" target="_blank">geungschool-hub.github.io/geungschool-science-hub/teacher-mark.html</a></p>
+        <h2>교사 기기</h2>
+        <p class="sub">과학허브 학생 로그인에서 <b>교사용 계정(20100 · 강좌 Z)</b>으로 로그인한 브라우저가 교사 기기이다. 그 브라우저는 접속 기록에 「교사」로 따로 남고, 과학허브 맨 아래에 🔐 교사 화면 카드가 보인다. 「다른 사람으로 로그인」을 누르면 학생 브라우저로 돌아간다. (2026-11-02 — 따로 있던 「교사 기기 표시」 주소는 없앴다.)</p>
         <p class="sub">수업 추정 기준: <input type="number" id="pGap" min="1" value="10" style="width:56px">분 간격 안에 기기 <input type="number" id="pMin" min="2" value="5" style="width:56px">대 이상 · 같은 기기 중복 제거 10분</p>
       </div>
     </div>
@@ -792,7 +791,6 @@ $('pw').addEventListener('keydown', function(e){ if (e.key === 'Enter') login();
 auth.onAuthStateChanged(function(u){
   if (u && u.email === TEACHER_EMAIL){
     $('login').classList.add('hide'); $('app').classList.remove('hide');
-    try { localStorage.setItem('hubstats_teacher', '1'); } catch (e) {}   /* 교사로 들어온 브라우저 = 교사 기기 — 과학허브에 「교사용」 카드가 뜨고 접속 기록이 따로 남는다(2026-11-02) */
     $('who').innerHTML = esc(u.email) + ' · <a href="#" id="out">로그아웃</a>';
     $('out').onclick = function(e){ e.preventDefault(); auth.signOut(); };
     load(); loadNets(); watchSubs();

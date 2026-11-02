@@ -455,7 +455,7 @@
           subject: '교사용',
           emoji: '🔐',
           status: 'live',
-          teacherOnly: true,   // 교사 기기(teacher-mark.html · 교사 화면 로그인)에서만 보인다 — 막는 것은 DB 규칙
+          teacherOnly: true,   // 교사용 계정으로 로그인한 브라우저에서만 보인다 — 막는 것은 교사 비밀번호 + DB 규칙
         },
         {
           title: '생물의 유전 복습 퀴즈',
@@ -498,12 +498,24 @@
       let query = '';
 
       // 과목 필터 칩 구성 (콘텐츠에서 자동 수집, '전체' 먼저)
-      /* 교사용 카드는 교사 기기로 표시된 브라우저에서만 보인다(2026-11-02). 숨기는 것일 뿐 잠금이 아니다 —
-         교사 화면은 교사 계정으로 로그인해야 열리고, 기록은 DB 규칙이 교사에게만 내준다. */
-      let IS_TEACHER = false;
-      try { IS_TEACHER = localStorage.getItem('hubstats_teacher') === '1'; } catch (e) {}
-      const SHOWN = CONTENTS.filter((c) => !c.teacherOnly || IS_TEACHER);
-      const subjects = ['전체', ...Array.from(new Set(SHOWN.map((c) => c.subject)))];
+      /* 교사용 카드는 교사용 계정(학생 로그인의 20100 · 강좌 Z)으로 로그인한 브라우저에서만 보인다(2026-11-02 교사:
+         「교사용 기기 확인을 교사용 계정이랑 같은 걸로」). 숨기는 것일 뿐 잠금이 아니다 — 교사 화면은 교사 비밀번호로만 열리고,
+         기록은 DB 규칙이 교사에게만 내준다. 학번을 바꾸면 _접속기록/기록조각.html 의 TEACHER 도 함께 바꾼다 */
+      const TEACHER_ID = { sc: 'hyehwa26', id: '20100' };
+      function isTeacherNow() {
+        try {
+          const me = JSON.parse(localStorage.getItem('hubauth_v1') || 'null');
+          return !!me && me.sc === TEACHER_ID.sc && me.id === TEACHER_ID.id;
+        } catch (e) { return false; }
+      }
+      try { localStorage.removeItem('hubstats_teacher'); } catch (e) {}   // 옛 교사 기기 표시 — 없앴다
+      let SHOWN = [], subjects = [];
+      function pickShown() {
+        const t = isTeacherNow();
+        SHOWN = CONTENTS.filter((c) => !c.teacherOnly || t);
+        subjects = ['전체', ...Array.from(new Set(SHOWN.map((c) => c.subject)))];
+      }
+      pickShown();
       function renderChips() {
         chipsBox.innerHTML = '';
         subjects.forEach((s) => {
@@ -601,6 +613,8 @@
 
       renderChips();
       renderCards();
+      // 이 화면에서 로그인하면(교사용 계정이면) 새로고침 없이 교사 화면 카드를 띄운다
+      window.addEventListener('hublogin', () => { pickShown(); renderChips(); renderCards(); });
     </script>
   
     <!-- QR 코드 라이브러리 (qrcode-generator, MIT License, Kazuhiko Arase) -->
@@ -3044,8 +3058,7 @@ var qrcode = function() {
         for (var i = 0; i < 16; i++) d += abc[r[i] % 36];
         try { if (ls) ls.setItem('hubstats_dev', d); } catch (e) {}
       }
-      var t = false;
-      try { t = !!ls && ls.getItem('hubstats_teacher') === '1'; } catch (e) {}
+      var t = m === 'te';   /* 교사 = 교사용 계정으로 로그인한 브라우저(VER 5 · 2026-11-02). 옛 「교사 기기 표시」는 쓰지 않는다 */
       (quick ? Promise.resolve('unknown') : network()).then(function(n){
         return fetch(DB + '/visits.json', {
           method: 'POST', keepalive: true,
@@ -3080,7 +3093,7 @@ var qrcode = function() {
      ★기록하는 것은 「들어감 · 머문 시간 · 다시 하기」뿐이다. 정답·힌트는 기록하지 않는다(작업노트/방법_활동기록_어디에남길것인가.md).
      ★이름 전체는 기기에 남기지 않는다(학번 + 성 첫 글자만). 기록 칸(track)에는 이름·학번이 없다(uid 만). */
   var APP = 'hub';
-  var VER = 3;   /* 2: 익명 선택 기기에 남김 · PIN 분실 안내 · 카드 고정 키(data-hub-card) · 3: 접속 기록에 로그인 상태 m(__hubMode) */
+  var VER = 5;   /* 2: 익명 선택 기기에 남김 · PIN 분실 안내 · 카드 고정 키(data-hub-card) · 3: 접속 기록에 로그인 상태 m(__hubMode) · 4: 작성 내용 제출(hubSubmit) + 추가 동의 ag2 · 5: 교사 = 교사용 계정 로그인(교사 기기 표시를 없앰) */
   var KEY = 'AIzaSyDNsHgzaruofl82oqrEb7GGkJhv8M04_YY';
   var DB = 'https://geung-hub-stats-default-rtdb.asia-southeast1.firebasedatabase.app';
   var IDT = 'https://identitytoolkit.googleapis.com/v1/accounts:';
@@ -3088,15 +3101,26 @@ var qrcode = function() {
   var HOST = 'geungschool-hub.github.io';
   var SCHOOLS = [{ v: 'hyehwa26', t: '혜화여자고등학교' }];   /* 값에 학년도 — 학번은 해마다 다른 학생에게 간다 */
   var PW_SUFFIX = '#gh26';
+  /* 교사용 계정 — 명단의 시범 계정(강좌 Z). 이 계정으로 로그인한 브라우저를 교사로 본다: 접속 기록 m=te · 과학허브에 교사 화면 카드.
+     ★교사 지시 2026-11-02: 「교사용 기기 확인을 교사용 계정이랑 같은 걸로 · 분리할 이유가 없다」. 따로 있던 교사 기기 표시(hubstats_teacher)는 없앴다.
+     학번은 비밀이 아니다(명단에서 이름은 「교사용」) — 학번이 바뀌면 과학허브 index.html 의 TEACHER_ID 도 함께 바꾼다 */
+  var TEACHER = { sc: 'hyehwa26', id: '20100' };
+  function isTeacher(m){ return !!m && m.sc === TEACHER.sc && m.id === TEACHER.id; }
   var LS_AUTH = 'hubauth_v1', SS_FB = 'hubgate_fb', LS_ANON = 'hubanon_until';   /* 익명 선택은 기기에 ANON_MS 동안 남는다(탭마다 다시 묻지 않게) */
   var T_STEP = 10000, T_FALLBACK = 10000, ENTER_MS = 5000, IDLE_MS = 60000, FLUSH_MS = 60000, ANON_MS = 4 * 3600000;
   /* 개인정보 수집·이용 동의 — 처음 로그인(PIN 을 정할 때)에만 받는다. 동의 시각은 users/{uid}/ag(서버 시각)에 남는다.
      ★「오직 수업 및 학습자료 개선 목적으로만 사용되며」는 교사 지정 문구(2026-10-14) — 빼지 말 것 */
   var CONSENT = '<b>개인정보 수집·이용 동의</b>' +
-    '<ul><li>수집 항목: 학번·이름(본인 확인), 활동별 접속 횟수·카드별 머문 시간·다시 하기 횟수 등 활동 참여 기록</li>' +
+    '<ul><li>수집 항목: 학번·이름(본인 확인), 활동별 접속 횟수·카드별 머문 시간·다시 하기 횟수 등 활동 참여 기록, 활동에서 직접 작성해 제출한 내용</li>' +
     '<li>이용 목적: 수집한 정보는 <b>오직 수업 및 학습자료 개선 목적으로만 사용되며</b>, 여기서 수업 목적에는 활동 참여 기록을 학기말 학교생활기록부 작성의 근거로 쓰는 것이 포함된다.</li>' +
     '<li>보유 기간: 학교생활기록부의 근거 자료로 쓰일 수 있으므로 졸업 후 1년까지 보관하고, 그 뒤 삭제한다.</li>' +
     '<li>동의하지 않을 수 있다. 동의하지 않으면 「익명으로 이용」을 누른다. 익명으로도 모든 활동을 똑같이 이용할 수 있고, 학생 기록은 남지 않는다.</li></ul>';
+  /* 작성 내용 추가 동의 — VER 3 까지 가입한 학생은 「작성 내용」에 동의한 적이 없다. 처음 제출할 때 한 번 받는다(users/{uid}/ag2).
+     VER 4 부터 가입하는 학생은 위 CONSENT 에 작성 내용이 들어 있어 가입할 때 ag2 도 함께 남긴다(교사 지시 2026-11-02) */
+  var CONSENT2 = '<b>작성 내용 수집·이용 동의(추가)</b>' +
+    '<ul><li>추가 수집 항목: 활동에서 직접 작성해 제출한 내용</li>' +
+    '<li>이용 목적·보유 기간: 처음 로그인할 때 동의한 내용과 같다. 수집한 정보는 <b>오직 수업 및 학습자료 개선 목적으로만 사용되며</b>, 학기말 학교생활기록부 작성의 근거로 쓸 수 있고, 졸업 후 1년까지 보관한 뒤 삭제한다.</li>' +
+    '<li>동의하지 않을 수 있다. 동의하지 않으면 제출되지 않는다. 활동은 그대로 이용할 수 있다.</li></ul>';
 
   /* ▼ 순수 — 검사가 떼어 쓴다 */
   function normName(s){ return String(s == null ? '' : s).replace(/\s+/g, ''); }
@@ -3138,6 +3162,18 @@ var qrcode = function() {
     if (typeof v === 'string') return v.length <= 200;
     if (typeof v === 'number') return isFinite(v);
     return typeof v === 'boolean';
+  }
+  /* 제출 답 — {q1:'…', q2:'…'} · 칸 이름 q숫자 · 칸마다 2000자 이하 · 하나는 비어 있지 않아야 한다 */
+  var SUB_MAX = 2000;
+  function subOk(a){
+    if (!a || typeof a !== 'object' || Array.isArray(a)) return false;
+    var ks = Object.keys(a), any = false;
+    if (!ks.length || ks.length > 20) return false;
+    for (var i = 0; i < ks.length; i++){
+      if (!/^q[0-9]{1,2}$/.test(ks[i]) || typeof a[ks[i]] !== 'string' || a[ks[i]].length > SUB_MAX) return false;
+      if (a[ks[i]].trim()) any = true;
+    }
+    return any;
   }
   /* ▲ 순수 */
 
@@ -3183,6 +3219,14 @@ var qrcode = function() {
       db.claim[m[3]] = body; return res(200, body);
     }
     if (m[0] === 'st' && m[3] === 'on'){ db.st[m[1]][m[2]].on = true; return res(200, true); }
+    if (m[0] === 'users' || m[0] === 'sub'){   /* 제출 실측용 — 경로 그대로 저장 · 서버 시각은 지금 시각으로 */
+      var kp = m.join('/'), kv = demoStore.kv || (demoStore.kv = {});
+      if (meth === 'GET') return res(200, kv[kp] === undefined ? null : kv[kp]);
+      var put = JSON.parse(JSON.stringify(body), function(k, v){ return v && v['.sv'] ? now() : v; });
+      kv[kp] = put; if (m[0] === 'users' && put && put.ag2) kv[kp + '/ag2'] = put.ag2;
+      if (W.console) console.log('[hubdemo]', meth, kp, put);
+      return res(200, put);
+    }
     if (W.console) console.log('[hubdemo]', meth, m.join('/'), body);
     return res(200, body || null);
   }
@@ -3333,7 +3377,7 @@ var qrcode = function() {
     var go = D.getElementById('hubl-go'); if (go) go.disabled = true;
     msg('확인하고 있다…', 'info');
     doLogin(f).then(function(){
-      W.__hubMode = 'in'; closeGate(); badge(); toast(me.tag + ' 으로 기록한다.'); startTrack();
+      W.__hubMode = isTeacher(me) ? 'te' : 'in'; closeGate(); badge(); toast(me.tag + ' 으로 기록한다.'); startTrack();
     }, function(e){
       if (e && e.timeout){ fallback(); return; }
       msg(typeof e === 'string' ? e : '로그인하지 못했다. 다시 시도하시오.', /^처음 로그인/.test(e) ? 'info' : 'bad');   /* 처음 로그인 안내는 오류가 아니다 */
@@ -3393,7 +3437,7 @@ var qrcode = function() {
           throw e;
         });
       }).then(function(){
-        return dbCall('PUT', 'users/' + uid, { sc: f.sc, id: f.id, ag: { '.sv': 'timestamp' } }, tok);   /* ag = 동의 시각 */
+        return dbCall('PUT', 'users/' + uid, { sc: f.sc, id: f.id, ag: { '.sv': 'timestamp' }, ag2: { '.sv': 'timestamp' } }, tok);   /* ag = 동의 시각 · ag2 = 작성 내용 동의(VER 4 의 CONSENT 에 들어 있다) */
       }).then(function(u){
         if (u.ok) return;
         return dbCall('GET', 'users/' + uid, null, tok).then(function(g){
@@ -3506,6 +3550,7 @@ var qrcode = function() {
     flush(false);
     replay();
     pending.splice(0).forEach(function(a){ W.hubTrack(a[0], a[1], a[2]); });
+    try { W.dispatchEvent(new Event('hublogin')); } catch (e) {}   /* 제출 활동이 지난 제출본을 불러오는 신호 */
   }
   /* 상세 기록 통로 — 활동이 원하는 자리에서 부른다. 아직 어느 문항에도 붙이지 않았다 */
   W.hubTrack = function(card, key, value){
@@ -3515,14 +3560,70 @@ var qrcode = function() {
     send({ m: 'POST', p: 'track/' + me.uid + '/' + APP + '/d/' + card, b: { k: key, v: value, t: { '.sv': 'timestamp' } }, ts: now() });
   };
 
+  /* ── 작성 내용 제출 (VER 4) ──────────────────────────────────────────
+     활동이 부른다: hubWho() → {tag} | null · hubLoad() → 지난 제출본 | null · hubSubmit({q1,q2,…}) → {t} 또는 안내 문구로 거부
+     저장 자리 sub/{uid}/{APP} = {a, t, v} — 다시 내면 덮어쓴다(마감 전까지 고칠 수 있게 · 교사 지시 2026-11-02).
+     ★로그인한 학생만 낸다(익명·교사 기기·서버 불통은 hubWho() 가 null). 이름·학번은 싣지 않는다 — uid 만. */
+  var ag2Ok = false;
+  function needLive(){ return mode === 'live' && me ? null : '로그인해야 제출된다. 왼쪽 아래 「로그인하기」를 누르시오.'; }
+  function askConsent2(){
+    return new Promise(function(ok, no){
+      css();
+      var o = el('div', 'hubl-ov'); o.id = 'hubl-ov2';
+      o.innerHTML = '<div class="hubl-box"><h2>📝 작성 내용 제출</h2><p class="hubl-sub">제출하기 전에 아래 내용을 읽으시오.</p>' +
+        '<div class="hubl-consent">' + CONSENT2 + '<label class="hubl-agree" for="hubl-agree2"><input id="hubl-agree2" type="checkbox"> 위 내용을 읽고 동의한다.</label></div>' +
+        '<div class="hubl-btns"><button class="hubl-go" id="hubl-go2" type="button">동의하고 제출</button><button class="hubl-skip" id="hubl-no2" type="button">제출하지 않음</button></div>' +
+        '<div class="hubl-msg" id="hubl-msg2"></div></div>';
+      D.body.appendChild(o);
+      function close(){ if (o.parentNode) o.parentNode.removeChild(o); }
+      D.getElementById('hubl-go2').onclick = function(){
+        if (!D.getElementById('hubl-agree2').checked){ var mm = D.getElementById('hubl-msg2'); mm.className = 'hubl-msg bad'; mm.textContent = '동의해야 제출할 수 있다. 제출하지 않으려면 「제출하지 않음」을 누르시오.'; return; }
+        close(); ok();
+      };
+      D.getElementById('hubl-no2').onclick = function(){ close(); no('제출하지 않았다. 작성한 내용은 이 기기에 남아 있다.'); };
+    });
+  }
+  function ensureAg2(tok){
+    if (ag2Ok) return Promise.resolve();
+    return dbCall('GET', 'users/' + me.uid + '/ag2', null, tok).then(function(r){
+      if (!r.ok) throw '인터넷 연결이 불안정하다. 다시 시도하시오.';
+      if (r.data){ ag2Ok = true; return; }
+      return askConsent2().then(function(){
+        return dbCall('PUT', 'users/' + me.uid + '/ag2', { '.sv': 'timestamp' }, tok);
+      }).then(function(p){
+        if (!p.ok) throw '동의를 저장하지 못했다. 다시 시도하시오.';
+        ag2Ok = true;
+      });
+    });
+  }
+  W.hubWho = function(){ return mode === 'live' && me ? { tag: me.tag } : null; };
+  W.hubLogin = function(){ lsSet(LS_ANON, null); ssSet(SS_FB, null); try { location.reload(); } catch (e) {} };
+  W.hubLoad = function(){
+    if (needLive()) return Promise.resolve(null);
+    return freshToken().then(function(tok){ return dbCall('GET', 'sub/' + me.uid + '/' + APP, null, tok); })
+      .then(function(r){ return r.ok ? r.data : null; }, function(){ return null; });
+  };
+  W.hubSubmit = function(ans){
+    var bad = needLive();
+    if (bad) return Promise.reject(bad);
+    if (!subOk(ans)) return Promise.reject('적은 내용이 없거나 너무 길다. 확인하시오.');
+    var tok;
+    return freshToken().then(function(t){ tok = t; return ensureAg2(tok); }).then(function(){
+      return dbCall('PUT', 'sub/' + me.uid + '/' + APP, { a: ans, t: { '.sv': 'timestamp' }, v: VER }, tok);
+    }).then(function(r){
+      if (r.ok) return { t: (r.data && typeof r.data.t === 'number') ? r.data.t : now() };
+      throw r.status ? '제출이 거부되었다. 선생님께 문의하시오. (' + r.status + ')' : '인터넷 연결이 불안정하다. 다시 시도하시오.';
+    }, function(e){ throw (typeof e === 'string') ? e : (e && e.timeout ? '서버가 답하지 않는다. 잠시 뒤 다시 시도하시오.' : '로그인이 풀렸다. 다시 로그인하시오.'); });
+  };
+
   /* ── 시작 ── */
   function boot(){
     try {
-      if (lsGet('hubstats_teacher') === '1'){ W.__hubMode = 'te'; return; }                       /* 교사 기기 — 묻지 않고 기록하지 않는다 */
+      lsSet('hubstats_teacher', null);                                         /* 옛 교사 기기 표시(VER 4 까지) — 지운다. 교사는 교사용 계정으로 로그인한다 */
       try { me = JSON.parse(lsGet(LS_AUTH) || 'null'); } catch (e) { me = null; }
       if (me && me.uid && me.refreshToken && me.tag){
         badge(); toast(me.tag + ' 으로 기록한다.');
-        W.__hubMode = 'in'; startTrack();                                     /* 서버를 기다리지 않는다 — 토큰은 보낼 때 갱신 */
+        W.__hubMode = isTeacher(me) ? 'te' : 'in'; startTrack();             /* 서버를 기다리지 않는다 — 토큰은 보낼 때 갱신 */
         return;
       }
       me = null;
