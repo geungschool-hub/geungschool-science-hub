@@ -528,6 +528,7 @@
 
       // 과목이 놓이는 차례 — SUBJECT_ORDER 에 적힌 것이 먼저, 나머지는 CONTENTS 차례대로
       function subjectRank(s) {
+        if (s === '교사용') return 9999;   // 교사용 칸은 늘 맨 아래 구석
         const i = SUBJECT_ORDER.indexOf(s);
         return i >= 0 ? i : SUBJECT_ORDER.length + subjects.indexOf(s);
       }
