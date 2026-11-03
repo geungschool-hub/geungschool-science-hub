@@ -800,22 +800,39 @@ auth.onAuthStateChanged(function(u){
 });
 
 /* ── 제출물 (sub/{uid}/{app} = {a:{q1..}, t, v}) ──
-   활동마다 문항 제목. 새 제출 활동을 만들면 여기에 한 줄 더한다(없으면 q1·q2… 로 보인다). */
+   활동마다 문항 제목. 새 제출 활동을 만들면 여기에 한 줄 더한다(없으면 칸 이름 q1·q21… 로 보인다).
+   q = [[칸 이름, 제목], …] — 칸 이름으로 찾는다(번호 순서로 세지 않는다 · q21 = 2-1).
+   ★clone-diff-act 는 11-03 에 2·3번을 단계로 나눴다(q21~q33). 그 전에 낸 q2·q3 은 「(이전 양식)」으로 보인다. */
 var SUB_Q = {
   'clone-diff-act': { name: '복제 생물로 보는 세포분화의 원리(79쪽)', q: [
-    '1. 돌리는 대리모 양과 핵을 제공한 양 중 어느 양과 비슷한가?',
-    '2. 분화가 유전자 구성이 변해 일어난다면 복제 실험 결과는?',
-    '3. 동물·식물 복제로 알 수 있는 세포분화의 원리' ] }
+    ['q1',  '1. 돌리는 대리모 양과 핵을 제공한 양 중 어느 양과 비슷한가?'],
+    ['q21', '2-1. (가정대로라면) 분화한 세포의 유전체는?'],
+    ['q22', '2-2. 그런 세포로 완전한 개체를 만들 수 있는가?'],
+    ['q23', '2-3. 복제 실험 결과 예상'],
+    ['q31', '3-1. 실제 실험 결과'],
+    ['q32', '3-2. 가정과 맞는가 · 분화한 세포의 유전체에 대한 사실'],
+    ['q33', '3-3. 유전자 구성이 같은데 모양·기능이 다른 까닭'],
+    ['q2',  '(이전 양식) 2. 분화가 유전자 구성이 변해 일어난다면 복제 실험 결과는?'],
+    ['q3',  '(이전 양식) 3. 동물·식물 복제로 알 수 있는 세포분화의 원리'] ],
+    old: { q2: 1, q3: 1 } }
 };
 var SUBS = {}, LIVE_USERS = {}, SUB_SEEN = null;
 function watchSubs(){
   db.ref('users').on('value', function(s){ LIVE_USERS = s.val() || {}; renderSubs(); });
   db.ref('sub').on('value', function(s){ SUBS = s.val() || {}; renderSubs(); }, function(e){ $('subList').textContent = '제출물을 읽지 못했다: ' + e.message + ' (DB 규칙에 sub 가 게시되었는지 확인)'; });
 }
+/* 보일 칸 — 정해 둔 칸(이전 양식 칸은 그 학생이 실제로 낸 경우만) + 정해 두지 않은 칸(이름 순) */
 function subQs(app, a){
-  var def = SUB_Q[app], n = def ? def.q.length : 0;
-  Object.keys(a || {}).forEach(function(k){ var i = Number(k.slice(1)); if (i > n) n = i; });
-  var out = []; for (var i = 1; i <= n; i++) out.push({ k: 'q' + i, t: def && def.q[i - 1] ? def.q[i - 1] : 'q' + i });
+  var def = SUB_Q[app], out = [], seen = {};
+  a = a || {};
+  (def ? def.q : []).forEach(function(p){
+    seen[p[0]] = 1;
+    if (def.old && def.old[p[0]] && !String(a[p[0]] || '').trim()) return;
+    out.push({ k: p[0], t: p[1] });
+  });
+  Object.keys(a).filter(function(k){ return !seen[k]; })
+    .sort(function(x, y){ return Number(x.slice(1)) - Number(y.slice(1)); })
+    .forEach(function(k){ out.push({ k: k, t: k }); });
   return out;
 }
 /* uid 별 제출 → 학번 별 줄 (명단에 있는 학생은 안 냈어도 줄이 있다) */
@@ -861,7 +878,8 @@ $('subApp').onchange = renderSubs; $('subQ').oninput = renderSubs; $('subMissing
 ['fGrp', 'fTest'].forEach(function(id){ $(id).addEventListener('change', renderSubs); });
 $('subCsv').onclick = function(){
   var app = $('subApp').value, rows = subRows(app), qs = subQs(app, {});
-  rows.forEach(function(r){ var x = subQs(app, r.a || {}); if (x.length > qs.length) qs = x; });
+  var all = {}; rows.forEach(function(r){ Object.keys(r.a || {}).forEach(function(k){ if (String(r.a[k] || '').trim()) all[k] = 'x'; }); });
+  qs = subQs(app, all);   /* 누구든 낸 칸은 모두 열로 */
   var out = [['학번', '이름', '강좌', '제출 시각'].concat(qs.map(function(x){ return x.t; }))];
   rows.forEach(function(r){ var ro = DATA.roster[r.id]; out.push([r.id, ro ? ro.name : '', ro ? ro.grp : '', r.t ? fmtT(r.t) : '안 냄'].concat(qs.map(function(x){ return r.a ? (r.a[x.k] || '') : ''; }))); });
   download('제출물_' + app + '_' + stamp() + '.csv', toCsv(out));
